@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Driven SA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ea702e',
+                        secondary: '#141514',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #ea702e;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .platform-card {
+            transition: all 0.3s ease;
+        }
+        .platform-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(234, 112, 46, 0.1);
+        }
+        .content-link {
+            color: #ea702e;
+            text-decoration: underline;
+        }
+        .content-link:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="contentAnalyzer()">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-secondary">AI-Driven <span class="text-primary">SA</span></h1>
+        
+        <div class="max-w-2xl mx-auto mb-12">
+            <div class="relative">
+                <input type="text" 
+                       x-model="searchQuery"
+                       @keyup.enter="searchContent"
+                       class="w-full px-6 py-4 text-lg border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                       placeholder="Enter a topic to analyze across platforms...">
+                <button @click="searchContent" 
+                        class="absolute right-2 top-2 bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition">
+                    <span x-show="!isLoading">Search</span>
+                    <div x-show="isLoading" class="loader"></div>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="isLoading" class="text-center mb-8">
+            <div class="loader mx-auto"></div>
+            <p class="text-gray-600 mt-4">Analyzing content across platforms...</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" x-show="!isLoading">
+            <template x-for="platform in platforms" :key="platform.name">
+                <div class="platform-card bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+                    <div class="flex items-center mb-4">
+                        <i :class="`${platform.icon} text-2xl mr-3 text-primary`"></i>
+                        <h3 class="text-xl font-semibold text-secondary" x-text="platform.name"></h3>
+                    </div>
+                    <div class="content-area max-h-[400px] overflow-y-auto">
+                        <template x-if="results[platform.name]">
+                            <div class="space-y-4">
+                                <div class="text-gray-700" x-html="results[platform.name].analysis"></div>
+                                <template x-if="results[platform.name].links && results[platform.name].links.length">
+                                    <div class="mt-4">
+                                        <h4 class="font-semibold text-secondary mb-2">Related Links:</h4>
+                                        <ul class="space-y-2">
+                                            <template x-for="link in results[platform.name].links" :key="link.url">
+                                                <li>
+                                                    <a :href="link.url" 
+                                                       target="_blank" 
+                                                       class="content-link text-sm"
+                                                       x-text="link.title"></a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template x-if="!results[platform.name]">
+                            <p class="text-gray-500">Loading content from <span x-text="platform.name"></span>...</p>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function contentAnalyzer() {
+            return {
+                searchQuery: '',
+                isLoading: false,
+                results: {},
+                platforms: [
+                    { name: 'OpenAI', icon: 'bi-robot' },
+                    { name: 'Gemini', icon: 'bi-google' },
+                    { name: 'YouTube', icon: 'bi-youtube' },
+                    { name: 'Instagram', icon: 'bi-instagram' },
+                    { name: 'Facebook', icon: 'bi-facebook' },
+                    { name: 'Twitter', icon: 'bi-twitter' }
+                ],
+                async searchContent() {
+                    if (!this.searchQuery.trim()) return;
+                    
+                    this.isLoading = true;
+                    this.results = {};
+
+                    try {
+                        // OpenAI Analysis
+                        const openAiPrompt = `Analyze this topic and provide insights with relevant links: ${this.searchQuery}`;
+                        const openAiResponse = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer S4g89FKa6FO2UHhWxF53zwjxVA72',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [{
+                                    role: 'user',
+                                    content: [{ type: 'text', text: openAiPrompt }]
+                                }]
+                            })
+                        });
+                        const openAiData = await openAiResponse.json();
+                        
+                        // Gemini Analysis with links
+                        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyBjNg2hShnd28nXRicPvF-yV32asJMY35U`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{
+                                        text: `Analyze this topic and suggest relevant websites, videos, and social media content: ${this.searchQuery}`
+                                    }]
+                                }]
+                            })
+                        });
+                        const geminiData = await geminiResponse.json();
+
+                        // Process and structure the results
+                        this.processPlatformResults(openAiData, geminiData);
+
+                        // Store search in database
+                        await this.storeSearchResults();
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred while fetching results. Please try again.');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                processPlatformResults(openAiData, geminiData) {
+                    // OpenAI Results
+                    this.results['OpenAI'] = {
+                        analysis: openAiData.message,
+                        links: this.extractLinks(openAiData.message)
+                    };
+
+                    // Gemini Results
+                    const geminiText = geminiData.candidates[0].content.parts[0].text;
+                    this.results['Gemini'] = {
+                        analysis: geminiText,
+                        links: this.extractLinks(geminiText)
+                    };
+
+                    // Process for other platforms using AI-generated content
+                    const platforms = ['YouTube', 'Instagram', 'Facebook', 'Twitter'];
+                    platforms.forEach(platform => {
+                        const aiSuggestions = this.generatePlatformSuggestions(platform, this.searchQuery);
+                        this.results[platform] = {
+                            analysis: aiSuggestions.analysis,
+                            links: aiSuggestions.links
+                        };
+                    });
+                },
+
+                extractLinks(text) {
+                    const urlRegex = /https?:\/\/[^\s]+/g;
+                    const urls = text.match(urlRegex) || [];
+                    return urls.map(url => ({
+                        url: url,
+                        title: `Related content on ${new URL(url).hostname}`
+                    }));
+                },
+
+                generatePlatformSuggestions(platform, query) {
+                    const platformSpecificContent = {
+                        YouTube: {
+                            analysis: `Trending ${query}-related videos on YouTube`,
+                            links: [
+                                { url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, title: 'View related videos on YouTube' }
+                            ]
+                        },
+                        Instagram: {
+                            analysis: `Popular ${query} content on Instagram`,
+                            links: [
+                                { url: `https://www.instagram.com/explore/tags/${encodeURIComponent(query.replace(/\s+/g, ''))}`, title: 'Explore related content on Instagram' }
+                            ]
+                        },
+                        Facebook: {
+                            analysis: `Facebook posts and discussions about ${query}`,
+                            links: [
+                                { url: `https://www.facebook.com/search/posts/?q=${encodeURIComponent(query)}`, title: 'Find related posts on Facebook' }
+                            ]
+                        },
+                        Twitter: {
+                            analysis: `Twitter conversations about ${query}`,
+                            links: [
+                                { url: `https://twitter.com/search?q=${encodeURIComponent(query)}`, title: 'Join the conversation on Twitter' }
+                            ]
+                        }
+                    };
+
+                    return platformSpecificContent[platform];
+                },
+
+                async storeSearchResults() {
+                    const userId = localStorage.getItem('userId') || `user-${Date.now()}`;
+                    if (!localStorage.getItem('userId')) {
+                        localStorage.setItem('userId', userId);
+                    }
+
+                    await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/db', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer S4g89FKa6FO2UHhWxF53zwjxVA72',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            appSlug: 'ai-driven-sa',
+                            action: 'create',
+                            table: 'searches',
+                            data: {
+                                query: this.searchQuery,
+                                timestamp: new Date().toISOString(),
+                                results: this.results
+                            }
+                        })
+                    });
+                }
+            }
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
